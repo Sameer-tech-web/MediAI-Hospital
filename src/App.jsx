@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 
 import Login from './components/Login';
-import PatientPortal from './components/PatientPortal';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import Dashboard from './components/Dashboard';
@@ -17,8 +16,6 @@ import Settings from './components/Settings';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isPatientPortalOpen, setIsPatientPortalOpen] = useState(false);
-  const [patientPortalData, setPatientPortalData] = useState(null);
   const [userRole, setUserRole] = useState('Admin');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -26,31 +23,15 @@ export default function App() {
   const handleLoginSuccess = (role) => {
     setUserRole(role);
     setIsLoggedIn(true);
-    setIsPatientPortalOpen(false);
     setActiveTab('dashboard');
   };
-
-  const handleOpenPatientPortal = (patientAuthData) => {
-    setPatientPortalData(patientAuthData);
-    setIsPatientPortalOpen(true);
-  };
-
-  // Public Patient Portal
-  if (isPatientPortalOpen) {
-    return (
-      <PatientPortal
-        patientData={patientPortalData}
-        onBackToLogin={() => setIsPatientPortalOpen(false)}
-      />
-    );
-  }
 
   // Staff Login
   if (!isLoggedIn) {
     return (
       <Login
         onLoginSuccess={handleLoginSuccess}
-        onOpenPatientPortal={handleOpenPatientPortal}
+        onOpenPatientPortal={() => alert("Patient Portal coming soon!")}
       />
     );
   }
