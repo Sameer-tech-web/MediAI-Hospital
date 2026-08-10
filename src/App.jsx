@@ -1,0 +1,122 @@
+import React, { useState } from 'react';
+
+import Login from './components/Login';
+import PatientPortal from './components/PatientPortal';
+import Sidebar from './components/Sidebar';
+import Navbar from './components/Navbar';
+import Dashboard from './components/Dashboard';
+import Patients from './components/Patients';
+import AddPatient from './components/AddPatient';
+import PatientProfile from './components/PatientProfile';
+import DoctorPanel from './components/DoctorPanel';
+import NursePanel from './components/NursePanel';
+import Laboratory from './components/Laboratory';
+import AIAssistant from './components/AIAssistant';
+import Reports from './components/Reports';
+import Settings from './components/Settings';
+
+export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isPatientPortalOpen, setIsPatientPortalOpen] = useState(false);
+  const [patientPortalData, setPatientPortalData] = useState(null);
+  const [userRole, setUserRole] = useState('Admin');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedPatient, setSelectedPatient] = useState(null);
+
+  const handleLoginSuccess = (role) => {
+    setUserRole(role);
+    setIsLoggedIn(true);
+    setIsPatientPortalOpen(false);
+    setActiveTab('dashboard');
+  };
+
+  const handleOpenPatientPortal = (patientAuthData) => {
+    setPatientPortalData(patientAuthData);
+    setIsPatientPortalOpen(true);
+  };
+
+  // Public Patient Portal
+  if (isPatientPortalOpen) {
+    return (
+      <PatientPortal
+        patientData={patientPortalData}
+        onBackToLogin={() => setIsPatientPortalOpen(false)}
+      />
+    );
+  }
+
+  // Staff Login
+  if (!isLoggedIn) {
+    return (
+      <Login
+        onLoginSuccess={handleLoginSuccess}
+        onOpenPatientPortal={handleOpenPatientPortal}
+      />
+    );
+  }
+
+  // Hospital Administrative Application
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <Dashboard setActiveTab={setActiveTab} />;
+
+      case 'patients':
+        return (
+          <Patients
+            setActiveTab={setActiveTab}
+            setSelectedPatient={setSelectedPatient}
+          />
+        );
+
+      case 'add-patient':
+        return <AddPatient setActiveTab={setActiveTab} />;
+
+      case 'patient-profile':
+        return (
+          <PatientProfile
+            patient={selectedPatient}
+            setActiveTab={setActiveTab}
+          />
+        );
+
+      case 'doctor':
+        return <DoctorPanel />;
+
+      case 'nurse':
+        return <NursePanel />;
+
+      case 'laboratory':
+        return <Laboratory />;
+
+      case 'ai-assistant':
+        return <AIAssistant />;
+
+      case 'reports':
+        return <Reports />;
+
+      case 'settings':
+        return <Settings />;
+
+      default:
+        return <Dashboard setActiveTab={setActiveTab} />;
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-medWhite font-sans overflow-hidden select-none">
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
+
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <Navbar userRole={userRole} />
+
+        <main className="flex-1 overflow-y-auto">
+          {renderContent()}
+        </main>
+      </div>
+    </div>
+  );
+}
