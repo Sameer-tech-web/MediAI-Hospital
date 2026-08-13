@@ -18,35 +18,43 @@ app.use('/api/vitals', require('./routes/vitalsRoutes.js'));
 
 // Health Check
 app.get('/', (req, res) => {
-  res.status(200).send('MediAI Hospital System API is running...');
+  res.status(200).json({
+    success: true,
+    message: 'MediAI Hospital System API is running...',
+  });
 });
 
 // Global Error Handler
 app.use((err, req, res, next) => {
+  console.error('Server Error:', err.message);
+
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
 
   res.status(statusCode).json({
+    success: false,
     message: err.message || 'Internal Server Error',
-    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
+    ...(process.env.NODE_ENV !== 'production' && {
+      stack: err.stack,
+    }),
   });
 });
 
-const PORT = process.env.PORT || 5000;
+// Connect to MongoDB
+connectDB().catch((error) => {
+  console.error('Failed to connect to MongoDB:', error.message);
+});
 
-// Start Server
-const startServer = async () => {
-  try {
-    await connectDB();
+// Local development server
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
 
-    app.listen(PORT, () => {
-      console.log(
-        `Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`
-      );
-    });
-  } catch (error) {
-    console.error('Failed to start server:', error.message);
-    process.exit(1);
-  }
-};
+  app.listen(PORT, () => {
+    console.log(
+      `Server running in ${
+        process.env.NODE_ENV || 'development'
+      } mode on port ${PORT}`
+    );
+  });
+}
 
-startServer();
+module.exports = app;
