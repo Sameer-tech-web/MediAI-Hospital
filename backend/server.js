@@ -1,60 +1,115 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const connectDB = require('./config/db.js');
+const connectDB = require('./config/db');
 
 dotenv.config();
 
 const app = express();
 
+// -----------------------------
+// Database Connection Manager
+// -----------------------------
+let isConnected = false;
+
+const ensureDBConnection = async (req, res, next) => {
+  if (isConnected) {
+    return next();
+  }
+
+  try {
+    await connectDB();
+    isConnected = true;
+    next();
+  } catch (error) {
+    console.error('Database connection failed:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Database connection failed',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+// -----------------------------
 // Middleware
-app.use(cors());
+// -----------------------------
+const corsOptions = {
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
+// Attach Database Connection Middleware to all API routes
+app.use(ensureDBConnection);
+
+// -----------------------------
 // API Routes
-app.use('/api/auth', require('./routes/authRoutes.js'));
-app.use('/api/patients', require('./routes/patientRoutes.js'));
-app.use('/api/vitals', require('./routes/vitalsRoutes.js'));
+// -----------------------------
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/patients', require('./routes/patientRoutes'));
+app.use('/api/vitals', require('./routes/vitalsRoutes'));
 
+// -----------------------------
 // Health Check
+// -----------------------------
 app.get('/', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'MediAI Hospital System API is running...',
+    timestamp: new Date().toISOString(),
   });
 });
 
+// -----------------------------
+// API 404 Handler
+// -----------------------------
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `Route not found: ${req.method} ${req.originalUrl}`,
+  });
+});
+
+// -----------------------------
 // Global Error Handler
+// -----------------------------
 app.use((err, req, res, next) => {
-  console.error('Server Error:', err.message);
+  console.error('Server Error:', err);
 
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-
+  const statusCode = err.status || err.statusCode || 500;
   res.status(statusCode).json({
     success: false,
     message: err.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV !== 'production' && {
-      stack: err.stack,
-    }),
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 });
 
-// Connect to MongoDB
-connectDB().catch((error) => {
-  console.error('Failed to connect to MongoDB:', error.message);
-});
-
-// Local development server
-if (process.env.NODE_ENV !== 'production') {
+// -----------------------------
+// Local Development Listener
+// -----------------------------
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
 
-  app.listen(PORT, () => {
-    console.log(
-      `Server running in ${
-        process.env.NODE_ENV || 'development'
-      } mode on port ${PORT}`
-    );
-  });
+  connectDB()
+    .then(() => {
+      isConnected = true;
+      app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+      });
+    })
+    .catch((error) => {
+      console.error('Failed to connect to MongoDB on startup:', error.message);
+      process.exit(1);
+    });
 }
 
+// Export Express app for Vercel Serverless
 module.exports = app;
