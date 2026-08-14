@@ -7,9 +7,14 @@ import {
   ArrowRight,
   ShieldCheck,
   Activity,
+  AlertCircle,
 } from 'lucide-react';
 
-const API_BASE_URL = 'https://medi-ai-hospital-8vjx.vercel.app/api';
+// Use environment variable with fallback
+const API_URL =
+  import.meta.env?.VITE_API_URL ||
+  process.env.REACT_APP_API_URL ||
+  'https://medi-ai-hospital-8vjx.vercel.app/api';
 
 export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
   const [accessMode, setAccessMode] = useState('staff');
@@ -17,25 +22,33 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
   const [role, setRole] = useState('doctor');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [patientId, setPatientId] = useState('');
   const [patientCnic, setPatientCnic] = useState('');
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleModeChange = (mode) => {
+    setAccessMode(mode);
+    setErrorMessage('');
+  };
+
   const handleStaffSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage('');
 
-    if (isSubmitting) return;
+    if (isLoading) return;
 
     if (!email.trim() || !password.trim()) {
-      alert('Please fill in all staff credentials.');
+      setErrorMessage('Please enter both email and password.');
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      setIsLoading(true);
+
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -43,59 +56,72 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
         body: JSON.stringify({
           email: email.trim(),
           password,
-          role, // Included role in request body
+          role, // Included role if backend expects verification
         }),
       });
+
+      const contentType = response.headers.get('content-type') || '';
+
+      if (!contentType.includes('application/json')) {
+        throw new Error(
+          'Backend returned an unexpected response format. Please check API URL.'
+        );
+      }
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Login failed.');
+        throw new Error(data.message || 'Invalid credentials.');
       }
 
-      if (!data.token) {
-        throw new Error('Login succeeded but no authentication token was received.');
-      }
-
+      // Save token and user details
       localStorage.setItem('mediai_token', data.token);
       localStorage.setItem('mediai_user', JSON.stringify(data));
 
-      if (onLoginSuccess) {
-        onLoginSuccess(data.role || role);
-      }
+      // Map backend role to UI display role
+      const roleMap = {
+        admin: 'Admin',
+        doctor: 'Doctor',
+        nurse: 'Nurse',
+        receptionist: 'Receptionist',
+      };
+
+      const frontendRole = roleMap[data.role] || 'Staff';
+      onLoginSuccess(frontendRole);
     } catch (error) {
-      alert(error.message || 'Unable to login. Please try again.');
+      console.error('Login error:', error);
+      setErrorMessage(error.message || 'Login failed. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   const handlePatientSubmit = (e) => {
     e.preventDefault();
+    setErrorMessage('');
 
     if (!patientId.trim()) {
-      alert('Please enter a valid Patient ID.');
+      setErrorMessage('Please enter a valid Patient ID.');
       return;
     }
 
     if (!patientCnic.trim()) {
-      alert('Please enter your CNIC or contact number.');
+      setErrorMessage('Please enter your CNIC or contact number.');
       return;
     }
 
-    if (onOpenPatientPortal) {
-      onOpenPatientPortal({
-        id: patientId.trim(),
-        cnic: patientCnic.trim(),
-      });
-    }
+    onOpenPatientPortal({
+      id: patientId.trim(),
+      cnic: patientCnic.trim(),
+    });
   };
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans">
       <div className="w-full max-w-md">
+        {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/30">
+          <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-medBlue text-white flex items-center justify-center shadow-lg shadow-blue-600/30">
             <Stethoscope className="w-8 h-8" />
           </div>
 
@@ -108,14 +134,18 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
           </p>
         </div>
 
+        {/* Login Card */}
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-          <div className="p-2 bg-slate-100 grid grid-cols-2 gap-2">
+          {/* Access Mode Selector */}
+          <div className="p-2 bg-slate-100 grid grid-cols-2 gap-2" role="tablist">
             <button
               type="button"
-              onClick={() => setAccessMode('staff')}
+              role="tab"
+              aria-selected={accessMode === 'staff'}
+              onClick={() => handleModeChange('staff')}
               className={`py-3 text-xs font-bold rounded-xl transition-all ${
                 accessMode === 'staff'
-                  ? 'bg-blue-600 text-white shadow-md'
+                  ? 'bg-medBlue text-white shadow-md'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -124,10 +154,12 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
 
             <button
               type="button"
-              onClick={() => setAccessMode('patient')}
+              role="tab"
+              aria-selected={accessMode === 'patient'}
+              onClick={() => handleModeChange('patient')}
               className={`py-3 text-xs font-bold rounded-xl transition-all ${
                 accessMode === 'patient'
-                  ? 'bg-blue-600 text-white shadow-md'
+                  ? 'bg-medBlue text-white shadow-md'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -136,22 +168,30 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
           </div>
 
           <div className="p-7">
+            {/* Error Banner */}
+            {errorMessage && (
+              <div className="mb-5 p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-700 text-xs font-semibold">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {/* STAFF LOGIN */}
             {accessMode === 'staff' ? (
               <form onSubmit={handleStaffSubmit} className="space-y-5">
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-2">
-                    <ShieldCheck className="w-5 h-5 text-blue-600" />
-
+                    <ShieldCheck className="w-5 h-5 text-medBlue" />
                     <h2 className="text-lg font-black text-slate-900">
                       Staff Authentication
                     </h2>
                   </div>
-
                   <p className="text-xs text-slate-500">
                     Authorized hospital personnel only.
                   </p>
                 </div>
 
+                {/* Role Dropdown */}
                 <div>
                   <label
                     htmlFor="staff-role"
@@ -159,12 +199,11 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                   >
                     Hospital Role
                   </label>
-
                   <select
                     id="staff-role"
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-medBlue/20"
                   >
                     <option value="admin">Hospital Administrator</option>
                     <option value="doctor">Attending Doctor</option>
@@ -173,6 +212,7 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                   </select>
                 </div>
 
+                {/* Email Input */}
                 <div>
                   <label
                     htmlFor="staff-email"
@@ -180,10 +220,8 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                   >
                     Staff Email
                   </label>
-
                   <div className="relative">
                     <User className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-
                     <input
                       id="staff-email"
                       type="email"
@@ -192,11 +230,12 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                       placeholder="doctor@mediai.org"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-medBlue/20"
                     />
                   </div>
                 </div>
 
+                {/* Password Input */}
                 <div>
                   <label
                     htmlFor="staff-password"
@@ -204,52 +243,47 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                   >
                     Password
                   </label>
-
                   <div className="relative">
                     <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-
                     <input
                       id="staff-password"
                       type="password"
                       required
-                      minLength={6}
                       autoComplete="current-password"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-medBlue/20"
                     />
                   </div>
                 </div>
 
+                {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2"
+                  disabled={isLoading}
+                  className="w-full py-3.5 bg-medBlue hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2"
                 >
-                  {isSubmitting ? 'Signing In...' : 'Access Hospital Console'}
-
-                  <ArrowRight className="w-4 h-4" />
+                  {isLoading ? 'Signing In...' : 'Access Hospital Console'}
+                  {!isLoading && <ArrowRight className="w-4 h-4" />}
                 </button>
               </form>
             ) : (
+              /* PATIENT PORTAL */
               <form onSubmit={handlePatientSubmit} className="space-y-5">
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-2">
-                    <FileText className="w-5 h-5 text-emerald-600" />
-
+                    <FileText className="w-5 h-5 text-medSuccess" />
                     <h2 className="text-lg font-black text-slate-900">
                       Patient Portal
                     </h2>
                   </div>
-
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    Enter your assigned Patient ID and CNIC/Phone for safe
-                    online access to your medical timeline and billing
-                    statements.
+                    Enter your assigned Patient ID and CNIC/Phone for safe online access.
                   </p>
                 </div>
 
+                {/* Patient ID */}
                 <div>
                   <label
                     htmlFor="patient-id"
@@ -257,10 +291,8 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                   >
                     Patient ID *
                   </label>
-
                   <div className="relative">
                     <Activity className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-
                     <input
                       id="patient-id"
                       type="text"
@@ -268,11 +300,12 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                       placeholder="e.g. MRN-00001"
                       value={patientId}
                       onChange={(e) => setPatientId(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-medBlue/20"
                     />
                   </div>
                 </div>
 
+                {/* CNIC / Phone */}
                 <div>
                   <label
                     htmlFor="patient-cnic"
@@ -280,25 +313,23 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                   >
                     CNIC or Contact Number *
                   </label>
-
                   <div className="relative">
                     <User className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-
                     <input
                       id="patient-cnic"
                       type="text"
                       required
-                      placeholder="CNIC or contact number"
+                      placeholder="CNIC or phone"
                       value={patientCnic}
                       onChange={(e) => setPatientCnic(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-medBlue/20"
                     />
                   </div>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3.5 bg-medSuccess hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2"
                 >
                   View Reports & Invoice
                   <ArrowRight className="w-4 h-4" />
@@ -307,6 +338,7 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
             )}
           </div>
 
+          {/* Footer */}
           <div className="px-7 py-4 bg-slate-50 border-t border-slate-100">
             <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
