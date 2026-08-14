@@ -10,16 +10,15 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
-// Use environment variable with fallback
 const API_URL =
   import.meta.env?.VITE_API_URL ||
   process.env.REACT_APP_API_URL ||
-  'https://medi-ai-hospital-8vjx.vercel.app/api';
+  'https://medi-ai-hospital-8vjx.vercel.app';
 
 export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
   const [accessMode, setAccessMode] = useState('staff');
 
-  const [role, setRole] = useState('doctor');
+  const [role, setRole] = useState('Doctor');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -41,14 +40,14 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
     if (isLoading) return;
 
     if (!email.trim() || !password.trim()) {
-      setErrorMessage('Please enter both email and password.');
+      setErrorMessage('Please enter both your email and password.');
       return;
     }
 
     try {
       setIsLoading(true);
 
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -56,47 +55,48 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
         body: JSON.stringify({
           email: email.trim(),
           password,
-          role, // Included role if backend expects verification
+          role,
         }),
       });
 
       const contentType = response.headers.get('content-type') || '';
+      let data;
 
-      if (!contentType.includes('application/json')) {
+      if (contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
         throw new Error(
-          'Backend returned an unexpected response format. Please check API URL.'
+          'Backend returned an invalid response. Please check the API configuration.'
         );
       }
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.message || 'Invalid credentials.');
+        throw new Error(data.message || 'Login failed.');
       }
 
-      // Save token and user details
+      if (!data.token) {
+        throw new Error(
+          'Login successful, but no authentication token was returned.'
+        );
+      }
+
       localStorage.setItem('mediai_token', data.token);
       localStorage.setItem('mediai_user', JSON.stringify(data));
 
-      // Map backend role to UI display role
-      const roleMap = {
-        admin: 'Admin',
-        doctor: 'Doctor',
-        nurse: 'Nurse',
-        receptionist: 'Receptionist',
-      };
-
-      const frontendRole = roleMap[data.role] || 'Staff';
-      onLoginSuccess(frontendRole);
+      onLoginSuccess(data.role || role);
     } catch (error) {
-      console.error('Login error:', error);
-      setErrorMessage(error.message || 'Login failed. Please try again.');
+      console.error('Login Error:', error);
+      setErrorMessage(
+        error.message || 'Unable to log in. Please check your credentials and try again.'
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handlePatientSubmit = (e) => {
+  const handlePatientSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -110,10 +110,12 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
       return;
     }
 
-    onOpenPatientPortal({
-      id: patientId.trim(),
-      cnic: patientCnic.trim(),
-    });
+    if (onOpenPatientPortal) {
+      onOpenPatientPortal({
+        id: patientId.trim(),
+        cnic: patientCnic.trim(),
+      });
+    }
   };
 
   return (
@@ -136,7 +138,7 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
 
         {/* Login Card */}
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-          {/* Access Mode Selector */}
+          {/* Access Mode Switcher */}
           <div className="p-2 bg-slate-100 grid grid-cols-2 gap-2" role="tablist">
             <button
               type="button"
@@ -168,7 +170,7 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
           </div>
 
           <div className="p-7">
-            {/* Error Banner */}
+            {/* Inline Error Banner */}
             {errorMessage && (
               <div className="mb-5 p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-700 text-xs font-semibold">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -176,8 +178,8 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
               </div>
             )}
 
-            {/* STAFF LOGIN */}
             {accessMode === 'staff' ? (
+              /* STAFF LOGIN FORM */
               <form onSubmit={handleStaffSubmit} className="space-y-5">
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-2">
@@ -186,12 +188,13 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                       Staff Authentication
                     </h2>
                   </div>
+
                   <p className="text-xs text-slate-500">
                     Authorized hospital personnel only.
                   </p>
                 </div>
 
-                {/* Role Dropdown */}
+                {/* Role Field */}
                 <div>
                   <label
                     htmlFor="staff-role"
@@ -199,20 +202,21 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                   >
                     Hospital Role
                   </label>
+
                   <select
                     id="staff-role"
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-medBlue/20"
                   >
-                    <option value="admin">Hospital Administrator</option>
-                    <option value="doctor">Attending Doctor</option>
-                    <option value="nurse">Staff Nurse</option>
-                    <option value="receptionist">Receptionist</option>
+                    <option value="Admin">Hospital Administrator</option>
+                    <option value="Doctor">Attending Doctor</option>
+                    <option value="Nurse">Staff Nurse</option>
+                    <option value="Lab Technician">Lab Technician</option>
                   </select>
                 </div>
 
-                {/* Email Input */}
+                {/* Email Field */}
                 <div>
                   <label
                     htmlFor="staff-email"
@@ -220,6 +224,7 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                   >
                     Staff Email
                   </label>
+
                   <div className="relative">
                     <User className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -235,7 +240,7 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                   </div>
                 </div>
 
-                {/* Password Input */}
+                {/* Password Field */}
                 <div>
                   <label
                     htmlFor="staff-password"
@@ -243,6 +248,7 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                   >
                     Password
                   </label>
+
                   <div className="relative">
                     <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -258,18 +264,17 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                   </div>
                 </div>
 
-                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3.5 bg-medBlue hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3.5 bg-medBlue hover:bg-blue-700 disabled:bg-slate-400 text-white font-bold text-sm rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
                 >
-                  {isLoading ? 'Signing In...' : 'Access Hospital Console'}
+                  {isLoading ? 'Authenticating...' : 'Access Hospital Console'}
                   {!isLoading && <ArrowRight className="w-4 h-4" />}
                 </button>
               </form>
             ) : (
-              /* PATIENT PORTAL */
+              /* PATIENT PORTAL FORM */
               <form onSubmit={handlePatientSubmit} className="space-y-5">
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-2">
@@ -278,8 +283,9 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                       Patient Portal
                     </h2>
                   </div>
+
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    Enter your assigned Patient ID and CNIC/Phone for safe online access.
+                    Enter your assigned Patient ID and CNIC/Phone.
                   </p>
                 </div>
 
@@ -291,6 +297,7 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                   >
                     Patient ID *
                   </label>
+
                   <div className="relative">
                     <Activity className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -313,13 +320,14 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
                   >
                     CNIC or Contact Number *
                   </label>
+
                   <div className="relative">
                     <User className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       id="patient-cnic"
                       type="text"
                       required
-                      placeholder="CNIC or phone"
+                      placeholder="CNIC or phone number"
                       value={patientCnic}
                       onChange={(e) => setPatientCnic(e.target.value)}
                       className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-medBlue/20"
@@ -329,7 +337,7 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 bg-medSuccess hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3.5 bg-medSuccess hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
                 >
                   View Reports & Invoice
                   <ArrowRight className="w-4 h-4" />
@@ -338,7 +346,6 @@ export default function Login({ onLoginSuccess, onOpenPatientPortal }) {
             )}
           </div>
 
-          {/* Footer */}
           <div className="px-7 py-4 bg-slate-50 border-t border-slate-100">
             <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
