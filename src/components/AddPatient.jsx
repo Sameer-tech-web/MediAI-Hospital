@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { UserPlus, CheckCircle } from 'lucide-react';
 
+const API_BASE_URL = 'https://medi-ai-hospital-8vjx.vercel.app/api';
+
 export default function AddPatient({ setActiveTab }) {
   const [formData, setFormData] = useState({
     name: '',
@@ -9,7 +11,7 @@ export default function AddPatient({ setActiveTab }) {
     cnic: '',
     phone: '',
     dept: 'Cardiology',
-    doctor: 'Dr. Sarah Jenkins',
+    doctor: '',
     vipTag: 'Standard Patient',
   });
 
@@ -24,28 +26,82 @@ export default function AddPatient({ setActiveTab }) {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (isSubmitting) return;
 
+    const token = localStorage.getItem('mediai_token');
+
+    if (!token) {
+      alert('Your session has expired. Please login again.');
+      return;
+    }
+
     setIsSubmitting(true);
 
-    // Current frontend behavior: simulate successful admission.
-    setTimeout(() => {
-      alert('Patient admitted and registered into system!');
+    try {
+      const response = await fetch(`${API_BASE_URL}/patients`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          age: Number(formData.age),
+          gender: formData.gender,
+          cnic: formData.cnic.trim(),
+          contact: formData.phone.trim() || formData.cnic.trim(),
+          department: formData.dept,
+          assignedDoctor: formData.doctor.trim() || null,
+          triageCategory:
+            formData.vipTag === 'Critical Priority'
+              ? 'Emergency'
+              : formData.vipTag === 'Doctor Relative VIP'
+              ? 'Urgent'
+              : 'Routine',
+          symptoms: 'Not specified',
+          bedNumber: null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to admit patient.');
+      }
+
+      alert(
+        `Patient admitted successfully!\n\nPatient Name: ${data.name || formData.name}\nMRN: ${data.mrn || data._id || 'N/A'}`
+      );
+
+      setFormData({
+        name: '',
+        age: '',
+        gender: 'Male',
+        cnic: '',
+        phone: '',
+        dept: 'Cardiology',
+        doctor: '',
+        vipTag: 'Standard Patient',
+      });
+
+      if (typeof setActiveTab === 'function') {
+        setActiveTab('patients');
+      }
+    } catch (error) {
+      alert(error.message || 'Unable to admit patient.');
+    } finally {
       setIsSubmitting(false);
-      setActiveTab('patients');
-    }, 500);
+    }
   };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto space-y-6 font-sans">
-      {/* Header */}
       <div>
         <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
-          <UserPlus className="w-5 h-5 sm:w-6 sm:h-6 text-medBlue shrink-0" />
-
+          <UserPlus className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 shrink-0" />
           <span>New Patient Admission</span>
         </h2>
 
@@ -54,14 +110,11 @@ export default function AddPatient({ setActiveTab }) {
         </p>
       </div>
 
-      {/* Admission Form */}
       <form
         onSubmit={handleSubmit}
         className="bg-white p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm space-y-5"
       >
-        {/* Name + Age/Gender */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Full Name */}
           <div>
             <label
               htmlFor="patient-name"
@@ -79,11 +132,10 @@ export default function AddPatient({ setActiveTab }) {
               placeholder="e.g. John Doe"
               value={formData.name}
               onChange={handleChange}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-medBlue/20 focus:border-medBlue transition-all"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
             />
           </div>
 
-          {/* Age + Gender */}
           <div>
             <label
               htmlFor="patient-age"
@@ -104,7 +156,7 @@ export default function AddPatient({ setActiveTab }) {
                 placeholder="Age"
                 value={formData.age}
                 onChange={handleChange}
-                className="w-full sm:w-1/2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-medBlue/20 focus:border-medBlue transition-all"
+                className="w-full sm:w-1/2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
               />
 
               <select
@@ -112,7 +164,7 @@ export default function AddPatient({ setActiveTab }) {
                 name="gender"
                 value={formData.gender}
                 onChange={handleChange}
-                className="w-full sm:w-1/2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-medBlue/20 focus:border-medBlue transition-all"
+                className="w-full sm:w-1/2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
               >
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -122,9 +174,7 @@ export default function AddPatient({ setActiveTab }) {
           </div>
         </div>
 
-        {/* CNIC + Phone */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* CNIC */}
           <div>
             <label
               htmlFor="patient-cnic"
@@ -143,11 +193,10 @@ export default function AddPatient({ setActiveTab }) {
               placeholder="42101-XXXXXXX-X"
               value={formData.cnic}
               onChange={handleChange}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-medBlue/20 focus:border-medBlue transition-all"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
             />
           </div>
 
-          {/* Phone */}
           <div>
             <label
               htmlFor="patient-phone"
@@ -165,14 +214,12 @@ export default function AddPatient({ setActiveTab }) {
               placeholder="03XX-XXXXXXX"
               value={formData.phone}
               onChange={handleChange}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-medBlue/20 focus:border-medBlue transition-all"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
             />
           </div>
         </div>
 
-        {/* Department + Doctor */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Department */}
           <div>
             <label
               htmlFor="patient-dept"
@@ -186,7 +233,7 @@ export default function AddPatient({ setActiveTab }) {
               name="dept"
               value={formData.dept}
               onChange={handleChange}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-medBlue/20 focus:border-medBlue transition-all"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
             >
               <option value="Cardiology">Cardiology</option>
               <option value="Neurology">Neurology</option>
@@ -197,7 +244,6 @@ export default function AddPatient({ setActiveTab }) {
             </select>
           </div>
 
-          {/* Doctor */}
           <div>
             <label
               htmlFor="patient-doctor"
@@ -211,24 +257,16 @@ export default function AddPatient({ setActiveTab }) {
               name="doctor"
               value={formData.doctor}
               onChange={handleChange}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-medBlue/20 focus:border-medBlue transition-all"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
             >
-              <option value="Dr. Sarah Jenkins">
-                Dr. Sarah Jenkins
-              </option>
-
-              <option value="Dr. Robert Chen">
-                Dr. Robert Chen
-              </option>
-
-              <option value="Dr. Lisa Ray">
-                Dr. Lisa Ray
-              </option>
+              <option value="">Select Doctor</option>
+              <option value="Dr. Sarah Jenkins">Dr. Sarah Jenkins</option>
+              <option value="Dr. Robert Chen">Dr. Robert Chen</option>
+              <option value="Dr. Lisa Ray">Dr. Lisa Ray</option>
             </select>
           </div>
         </div>
 
-        {/* Priority */}
         <div>
           <label
             htmlFor="patient-priority"
@@ -242,33 +280,24 @@ export default function AddPatient({ setActiveTab }) {
             name="vipTag"
             value={formData.vipTag}
             onChange={handleChange}
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-medBlue/20 focus:border-medBlue transition-all"
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
           >
-            <option value="Standard Patient">
-              Standard Patient
-            </option>
-
+            <option value="Standard Patient">Standard Patient</option>
             <option value="Doctor Relative VIP">
               Doctor Relative / Staff VIP
             </option>
-
-            <option value="Critical Priority">
-              Critical Priority
-            </option>
+            <option value="Critical Priority">Critical Priority</option>
           </select>
         </div>
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-3.5 px-4 bg-medBlue hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-bold text-xs sm:text-sm rounded-xl shadow-md flex items-center justify-center gap-2 transition-colors"
+          className="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-bold text-xs sm:text-sm rounded-xl shadow-md flex items-center justify-center gap-2 transition-colors"
         >
           <CheckCircle className="w-4 h-4" />
 
-          {isSubmitting
-            ? 'Saving Admission...'
-            : 'Save & Complete Admission'}
+          {isSubmitting ? 'Saving Admission...' : 'Save & Complete Admission'}
         </button>
       </form>
     </div>
