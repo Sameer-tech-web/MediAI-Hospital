@@ -6,11 +6,9 @@ import {
   Lock,
   Building,
   CheckCircle2,
-  XCircle,
   AlertCircle,
   Search,
   Filter,
-  ShieldCheck,
   CalendarCheck,
   UserX
 } from 'lucide-react';
@@ -109,13 +107,17 @@ export default function StaffAttendance() {
     }
   ]);
 
-  // Filtering Logic
+  // Safe Filtering Logic
   const filteredStaff = staffData.filter(staff => {
-    const matchesSearch = staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          staff.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          staff.assignedWard.toLowerCase().includes(searchTerm.toLowerCase());
+    const term = searchTerm.toLowerCase();
+    const matchesSearch = 
+      (staff.name && staff.name.toLowerCase().includes(term)) ||
+      (staff.id && staff.id.toLowerCase().includes(term)) ||
+      (staff.assignedWard && staff.assignedWard.toLowerCase().includes(term));
+      
     const matchesRole = roleFilter === 'All' || staff.role === roleFilter;
-    const matchesWard = wardFilter === 'All' || staff.assignedWard.includes(wardFilter);
+    const matchesWard = wardFilter === 'All' || (staff.assignedWard && staff.assignedWard.includes(wardFilter));
+    
     return matchesSearch && matchesRole && matchesWard;
   });
 
@@ -149,9 +151,9 @@ export default function StaffAttendance() {
         </div>
       </div>
 
-      {/* Staff Only KPI Summary Cards */}
+      {/* Staff KPI Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-2xs space-y-2">
+        <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-2">
           <div className="flex justify-between items-center text-slate-500">
             <span className="text-xs font-bold uppercase tracking-wider">Total Staff Roster</span>
             <Users className="w-5 h-5 text-indigo-600" />
@@ -160,7 +162,7 @@ export default function StaffAttendance() {
           <p className="text-[11px] text-slate-400 font-semibold">Doctors, Nurses & Shift Staff</p>
         </div>
 
-        <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-2xs space-y-2">
+        <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-2">
           <div className="flex justify-between items-center text-slate-500">
             <span className="text-xs font-bold uppercase tracking-wider">Present & On Duty</span>
             <CalendarCheck className="w-5 h-5 text-emerald-600" />
@@ -171,31 +173,31 @@ export default function StaffAttendance() {
           <p className="text-[11px] text-emerald-700 font-semibold">Verified via Biometric Gates</p>
         </div>
 
-        <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-2xs space-y-2">
+        <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-2">
           <div className="flex justify-between items-center text-slate-500">
             <span className="text-xs font-bold uppercase tracking-wider">Late Arrivals</span>
             <AlertCircle className="w-5 h-5 text-amber-500" />
           </div>
           <div className="text-2xl font-black text-amber-600">
-            {staffData.filter(s => s.timingStatus.includes('Late')).length} Staff
+            {staffData.filter(s => s.timingStatus && s.timingStatus.includes('Late')).length} Staff
           </div>
           <p className="text-[11px] text-slate-400 font-semibold">Arrived after shift start time</p>
         </div>
 
-        <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-2xs space-y-2">
+        <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-2">
           <div className="flex justify-between items-center text-slate-500">
             <span className="text-xs font-bold uppercase tracking-wider">Scheduled Off / Absent</span>
             <UserX className="w-5 h-5 text-slate-400" />
           </div>
           <div className="text-2xl font-black text-slate-700">
-            {staffData.filter(s => s.status.includes('Absent')).length} Staff
+            {staffData.filter(s => s.status && s.status.includes('Absent')).length} Staff
           </div>
           <p className="text-[11px] text-slate-400 font-semibold">Off duty or on approved leave</p>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-2xs flex flex-col md:flex-row gap-4 justify-between items-center">
+      <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
         <div className="relative w-full md:w-96">
           <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
           <input
@@ -225,7 +227,7 @@ export default function StaffAttendance() {
       </div>
 
       {/* Dedicated Staff Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-2xs overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-600">
             <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] font-bold border-b border-slate-100">
@@ -315,7 +317,7 @@ export default function StaffAttendance() {
                         COMPLETED
                       </span>
                     )}
-                    {staff.status.includes('Absent') && (
+                    {staff.status && staff.status.includes('Absent') && (
                       <span className="bg-slate-100 text-slate-500 font-bold text-[10px] px-2.5 py-1 rounded-full">
                         OFF DAY
                       </span>
