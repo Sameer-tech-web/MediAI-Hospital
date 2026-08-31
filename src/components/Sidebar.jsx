@@ -10,6 +10,7 @@ import {
   FileSpreadsheet,
   Settings,
   X,
+  Clock, // Added Clock Icon
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) {
@@ -40,6 +41,11 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) 
       icon: Syringe,
     },
     {
+      id: 'attendance', // NAYA TAB ADD HUA HAI
+      label: 'Staff Attendance & Rosters',
+      icon: Clock,
+    },
+    {
       id: 'laboratory',
       label: 'Laboratory',
       icon: FlaskConical,
@@ -63,7 +69,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) 
 
   return (
     <>
-      {/* Mobile Backdrop (Mobile me background dark karne ke liye) */}
+      {/* Mobile Backdrop */}
       {isOpen && (
         <div
           onClick={() => setIsOpen && setIsOpen(false)}
