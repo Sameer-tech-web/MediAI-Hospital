@@ -9,6 +9,7 @@ import AddPatient from './components/AddPatient';
 import PatientProfile from './components/PatientProfile';
 import DoctorPanel from './components/DoctorPanel';
 import NursePanel from './components/NursePanel';
+import StaffAttendance from './components/StaffAttendance'; // 1. Component Import Fix
 import Laboratory from './components/Laboratory';
 import AIAssistant from './components/AIAssistant';
 import Reports from './components/Reports';
@@ -66,6 +67,11 @@ export default function App() {
 
       case 'nurse':
         return <NursePanel />;
+
+      // 2. Staff Attendance Route Case Added Here!
+      case 'staff-attendance':
+      case 'attendance':
+        return <StaffAttendance />;
 
       case 'laboratory':
         return <Laboratory />;
