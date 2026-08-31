@@ -8,7 +8,8 @@ import {
   History, 
   Pill, 
   FlaskConical, 
-  FileText 
+  FileText,
+  Search
 } from 'lucide-react';
 
 // Mock Patient Database to demonstrate auto-load feature
@@ -51,6 +52,41 @@ const CATEGORIZED_SYMPTOMS = {
   'Gastro & Renal': ['Acidity / Heartburn', 'Stomach Cramps', 'Nausea / Vomiting', 'Edema / Sojan (Haleema)']
 };
 
+// Expanded Suggestions Database for Lab Tests & Rare Symptoms
+const ALL_SUGGESTED_LAB_TESTS = [
+  'CBC (Complete Blood Count)',
+  'LFT (Liver Function Test)',
+  'RFT (Renal Function Test)',
+  'Fasting Blood Sugar (FBS)',
+  'HbA1c (Glycated Hemoglobin)',
+  'Chest X-Ray (PA View)',
+  'ECG 12-Lead',
+  'Urine Routine & Microscopy',
+  'Lipid Profile (Cholesterol / Triglycerides)',
+  'Thyroid Profile (T3, T4, TSH)',
+  'Vitamin D3 (25-OH)',
+  'Serum Electrolytes (Na+, K+, Cl-)',
+  'Serum Creatinine',
+  'Uric Acid Test',
+  'CRP (C-Reactive Protein)',
+  'ECHO (Echocardiogram)',
+  'Ultrasound Abdomen & Pelvis',
+  'CT Scan Brain Plain'
+];
+
+const ALL_SUGGESTED_SYMPTOMS = [
+  'Dizziness / Ghabrahat',
+  'Loss of Appetite (Bhook na lagna)',
+  'Fatigue & Weakness',
+  'Dry Cough (Sookhi Khansi)',
+  'Fever with Chills',
+  'Skin Rash / Itching',
+  'Vertigo (Chakkar aana)',
+  'Insomnia (Neend na aana)',
+  'Numbness in Feet (Paon me sunn hona)',
+  'Blurry Vision'
+];
+
 const COMMON_LAB_TESTS = [
   'CBC (Complete Blood Count)',
   'LFT (Liver Function Test)',
@@ -75,6 +111,13 @@ export default function DoctorPanel() {
   
   // Selected Lab Tests
   const [selectedLabTests, setSelectedLabTests] = useState(['Fasting Blood Sugar (FBS)']);
+
+  // Dynamic Manual Add Input States
+  const [manualLabQuery, setManualLabQuery] = useState('');
+  const [suggestedLabTests, setSuggestedLabTests] = useState([]);
+
+  const [manualSymptomQuery, setManualSymptomQuery] = useState('');
+  const [suggestedSymptomsList, setSuggestedSymptomsList] = useState([]);
 
   // Medicine Search & Configurator State
   const [medQuery, setMedQuery] = useState('');
@@ -108,6 +151,32 @@ export default function DoctorPanel() {
     }
   };
 
+  // Manual Symptom Search & Add
+  const handleSymptomInputChange = (e) => {
+    const query = e.target.value;
+    setManualSymptomQuery(query);
+
+    if (query.trim().length > 0) {
+      const matches = ALL_SUGGESTED_SYMPTOMS.filter((s) =>
+        s.toLowerCase().includes(query.toLowerCase())
+      );
+      setSuggestedSymptomsList(matches);
+    } else {
+      setSuggestedSymptomsList([]);
+    }
+  };
+
+  const addManualSymptom = (symptomToAdd) => {
+    const finalSymptom = symptomToAdd || manualSymptomQuery.trim();
+    if (!finalSymptom) return;
+
+    if (!selectedSymptoms.includes(finalSymptom)) {
+      setSelectedSymptoms([...selectedSymptoms, finalSymptom]);
+    }
+    setManualSymptomQuery('');
+    setSuggestedSymptomsList([]);
+  };
+
   // Toggle Lab Test Tags
   const toggleLabTest = (test) => {
     if (selectedLabTests.includes(test)) {
@@ -115,6 +184,32 @@ export default function DoctorPanel() {
     } else {
       setSelectedLabTests([...selectedLabTests, test]);
     }
+  };
+
+  // Manual Lab Test Search & Add
+  const handleLabInputChange = (e) => {
+    const query = e.target.value;
+    setManualLabQuery(query);
+
+    if (query.trim().length > 0) {
+      const matches = ALL_SUGGESTED_LAB_TESTS.filter((t) =>
+        t.toLowerCase().includes(query.toLowerCase())
+      );
+      setSuggestedLabTests(matches);
+    } else {
+      setSuggestedLabTests([]);
+    }
+  };
+
+  const addManualLabTest = (testToAdd) => {
+    const finalTest = testToAdd || manualLabQuery.trim();
+    if (!finalTest) return;
+
+    if (!selectedLabTests.includes(finalTest)) {
+      setSelectedLabTests([...selectedLabTests, finalTest]);
+    }
+    setManualLabQuery('');
+    setSuggestedLabTests([]);
   };
 
   // Search Medicines
@@ -228,13 +323,80 @@ export default function DoctorPanel() {
           {/* Left Column: Symptoms, Diagnosis & Medicine Builder */}
           <div className="lg:col-span-2 space-y-6">
 
-            {/* Categorized Symptoms */}
+            {/* Symptoms Tagging + Manual Add Section */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
               <h3 className="font-bold text-slate-900 text-sm flex items-center justify-between">
-                <span>1-Click Symptoms Tagging</span>
-                <span className="text-[10px] text-slate-400 font-normal">Click to toggle symptoms</span>
+                <span>Symptoms Assessment</span>
+                <span className="text-[10px] text-slate-400 font-normal">Click chips or search to add</span>
               </h3>
 
+              {/* Manual Symptom Autocomplete Input */}
+              <div className="relative">
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      placeholder="Type custom symptom (e.g., Vertigo, Dizziness, Cough)..."
+                      value={manualSymptomQuery}
+                      onChange={handleSymptomInputChange}
+                      className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => addManualSymptom()}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> Add
+                  </button>
+                </div>
+
+                {/* Symptom Auto-Suggest Dropdown */}
+                {suggestedSymptomsList.length > 0 && (
+                  <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-40 overflow-y-auto">
+                    {suggestedSymptomsList.map((sym, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => addManualSymptom(sym)}
+                        className="w-full px-4 py-2 text-left hover:bg-blue-50 text-xs font-bold text-slate-700 border-b last:border-0 border-slate-100 flex items-center justify-between cursor-pointer"
+                      >
+                        <span>{sym}</span>
+                        <span className="text-[10px] text-blue-600 font-black">+ Add Symptom</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Selected Symptoms Dynamic Chips Display */}
+              {selectedSymptoms.length > 0 && (
+                <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100/80">
+                  <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block mb-2">
+                    Active Patient Symptoms
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedSymptoms.map((symptom) => (
+                      <span
+                        key={symptom}
+                        className="px-3 py-1 bg-blue-600 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
+                      >
+                        {symptom}
+                        <button
+                          type="button"
+                          onClick={() => toggleSymptom(symptom)}
+                          className="hover:bg-blue-700 p-0.5 rounded-full cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Categorized Quick Chips */}
               {Object.entries(CATEGORIZED_SYMPTOMS).map(([category, symptoms]) => (
                 <div key={category} className="space-y-1.5">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{category}</span>
@@ -446,32 +608,103 @@ export default function DoctorPanel() {
               )}
             </div>
 
-            {/* Lab Investigations Panel */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+            {/* Lab Investigations Panel with Manual Add & Auto-Suggestions */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
               <h3 className="font-bold text-slate-900 text-xs uppercase flex items-center gap-1.5">
                 <FlaskConical className="w-4 h-4 text-purple-600" /> Order Lab Tests
               </h3>
 
-              <div className="flex flex-wrap gap-1.5">
-                {COMMON_LAB_TESTS.map((test) => {
-                  const isSelected = selectedLabTests.includes(test);
-                  return (
-                    <button
-                      key={test}
-                      type="button"
-                      onClick={() => toggleLabTest(test)}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                        isSelected
-                          ? 'bg-purple-600 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200/80'
-                      }`}
-                    >
-                      {isSelected ? <CheckCircle className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5 text-slate-400" />}
-                      {test}
-                    </button>
-                  );
-                })}
+              {/* Manual Lab Test Search/Add Input with Auto-Suggestions */}
+              <div className="relative">
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      placeholder="Type custom test (e.g., Vitamin D, Thyroid, Lipid Profile)..."
+                      value={manualLabQuery}
+                      onChange={handleLabInputChange}
+                      className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                    />
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => addManualLabTest()}
+                    className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add
+                  </button>
+                </div>
+
+                {/* Lab Auto-Suggest Dropdown List */}
+                {suggestedLabTests.length > 0 && (
+                  <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-44 overflow-y-auto">
+                    {suggestedLabTests.map((test, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => addManualLabTest(test)}
+                        className="w-full px-4 py-2 text-left hover:bg-purple-50 text-xs font-bold text-slate-700 border-b last:border-0 border-slate-100 flex items-center justify-between cursor-pointer"
+                      >
+                        <span>{test}</span>
+                        <span className="text-[10px] text-purple-600 font-black">+ Order Test</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* Selected Lab Tests Chips */}
+              {selectedLabTests.length > 0 && (
+                <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100/80">
+                  <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider block mb-2">
+                    Ordered Lab Investigations
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedLabTests.map((test) => (
+                      <span
+                        key={test}
+                        className="px-2.5 py-1 bg-purple-600 text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-xs"
+                      >
+                        {test}
+                        <button
+                          type="button"
+                          onClick={() => toggleLabTest(test)}
+                          className="hover:bg-purple-700 p-0.5 rounded-full cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quick Common Lab Test Chips */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Common Quick Orders</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {COMMON_LAB_TESTS.map((test) => {
+                    const isSelected = selectedLabTests.includes(test);
+                    return (
+                      <button
+                        key={test}
+                        type="button"
+                        onClick={() => toggleLabTest(test)}
+                        className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                          isSelected
+                            ? 'bg-purple-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200/80'
+                        }`}
+                      >
+                        {isSelected ? <CheckCircle className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5 text-slate-400" />}
+                        {test}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
             </div>
 
             {/* Save Button */}
