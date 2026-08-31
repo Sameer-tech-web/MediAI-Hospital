@@ -9,15 +9,15 @@ import AddPatient from './components/AddPatient';
 import PatientProfile from './components/PatientProfile';
 import DoctorPanel from './components/DoctorPanel';
 import NursePanel from './components/NursePanel';
-import StaffAttendance from './components/StaffAttendance'; // 1. Component Import Fix
+import StaffAttendance from './components/StaffAttendance';
 import Laboratory from './components/Laboratory';
 import AIAssistant from './components/AIAssistant';
 import Reports from './components/Reports';
 import Settings from './components/Settings';
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState('Admin');
+  const [isLoggedIn, setIsLoggedIn] = useState(true); // Testing ke liye directly true rakha hai
+  const [userRole, setUserRole] = useState('Doctor');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedPatient, setSelectedPatient] = useState(null);
 
@@ -27,7 +27,7 @@ export default function App() {
     setActiveTab('dashboard');
   };
 
-  // Staff Login
+  // Staff Login Guard
   if (!isLoggedIn) {
     return (
       <Login
@@ -37,7 +37,7 @@ export default function App() {
     );
   }
 
-  // Hospital Administrative Application
+  // Active Screen Switch Logic
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
@@ -68,9 +68,8 @@ export default function App() {
       case 'nurse':
         return <NursePanel />;
 
-      // 2. Staff Attendance Route Case Added Here!
-      case 'staff-attendance':
       case 'attendance':
+      case 'staff-attendance':
         return <StaffAttendance />;
 
       case 'laboratory':
@@ -91,16 +90,20 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen bg-medWhite font-sans overflow-hidden select-none">
+    <div className="flex h-screen bg-slate-100 font-sans overflow-hidden">
+      {/* 1. Sidebar */}
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      {/* 2. Main Work Area */}
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+        {/* Navbar Component Header */}
         <Navbar userRole={userRole} />
 
-        <main className="flex-1 overflow-y-auto">
+        {/* Dynamic Screen View */}
+        <main className="flex-1 overflow-y-auto bg-slate-50">
           {renderContent()}
         </main>
       </div>
