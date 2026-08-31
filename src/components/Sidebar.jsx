@@ -24,7 +24,6 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) 
       label: 'Patients Directory',
       icon: Users,
     },
-    // "Admit Patient" tab yahan se remove kar diya gaya hai
     {
       id: 'doctor',
       label: 'Doctor Panel',
