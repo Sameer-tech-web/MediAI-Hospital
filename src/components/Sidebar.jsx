@@ -2,7 +2,6 @@ import React from 'react';
 import {
   LayoutDashboard,
   Users,
-  UserPlus,
   Stethoscope,
   Syringe,
   FlaskConical,
@@ -10,7 +9,7 @@ import {
   FileSpreadsheet,
   Settings,
   X,
-  Clock, // Added Clock Icon
+  Clock,
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) {
@@ -25,11 +24,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) 
       label: 'Patients Directory',
       icon: Users,
     },
-    {
-      id: 'add-patient',
-      label: 'Admit Patient',
-      icon: UserPlus,
-    },
+    // "Admit Patient" tab yahan se remove kar diya gaya hai
     {
       id: 'doctor',
       label: 'Doctor Panel',
@@ -41,7 +36,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) 
       icon: Syringe,
     },
     {
-      id: 'attendance', // NAYA TAB ADD HUA HAI
+      id: 'attendance',
       label: 'Staff Attendance & Rosters',
       icon: Clock,
     },
@@ -128,7 +123,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) 
                 type="button"
                 onClick={() => {
                   setActiveTab(item.id);
-                  if (setIsOpen) setIsOpen(false); // Mobile pe click hote hi menu close ho jaye
+                  if (setIsOpen) setIsOpen(false);
                 }}
                 aria-current={isActive ? 'page' : undefined}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs transition-all ${
