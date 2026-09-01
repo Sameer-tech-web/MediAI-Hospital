@@ -17,7 +17,6 @@ export default function Sidebar({ activeTab, setActiveTab }) {
     { id: 'patients', label: 'Patients Directory', icon: Users },
     { id: 'doctor', label: 'Doctor Panel', icon: Stethoscope },
     { id: 'nurse', label: 'Nurse Station & I/O', icon: UserCheck },
-    // EXACT MATCH KEY HERE: 'attendance'
     { id: 'attendance', label: 'Staff Attendance & Rosters', icon: Clock },
     { id: 'laboratory', label: 'Laboratory', icon: FlaskConical },
     { id: 'ai-assistant', label: 'MediAI Assistant', icon: Bot },
@@ -47,6 +46,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
             return (
               <button
                 key={item.id}
+                type="button"
                 onClick={() => setActiveTab(item.id)}
                 className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all duration-200 ${
                   isActive
@@ -65,7 +65,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       {/* Footer Indicators */}
       <div className="p-4 border-t border-slate-800/60 text-[10px] font-bold text-slate-400 flex items-center justify-between">
         <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           SYSTEM ONLINE
         </span>
         <span>• HIPAA ACTIVE</span>
